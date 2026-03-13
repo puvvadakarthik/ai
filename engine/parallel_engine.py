@@ -1,11 +1,23 @@
-
-from multiprocessing import Pool, cpu_count
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import os
 
 def parallel_run(symbols, func):
 
-    workers = cpu_count()
+    results = []
 
-    with Pool(workers) as pool:
-        results = pool.map(func, symbols)
+    workers = min(10, os.cpu_count() or 4)
 
-    return [r for r in results if r]
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+
+        futures = {executor.submit(func, s): s for s in symbols}
+
+        for future in as_completed(futures):
+
+            try:
+                r = future.result()
+
+                if r:
+                    results.append(r)
+
+            except:
+                pass
